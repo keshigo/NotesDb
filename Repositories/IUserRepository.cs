@@ -5,7 +5,7 @@ namespace ConsoleProject.NET.Repositories;
 
 public interface IUserRepository
 {
-    IReadOnlyList<UserVm> GetUsers();
-    UserVm? GetById(int id);
-    int Add(UserAddDto dto);
+    Task<UserVm> GetById(int id);
+    Task<IReadOnlyList<UserVm>> GetUsers();
+    Task<int> Add(UserAddDto dto);
 }

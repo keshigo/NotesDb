@@ -5,36 +5,60 @@ using System.Collections.Generic;
 using ConsoleProject.NET.Models;
 using ConsoleProject.NET.Repositories;
 using ConsoleProject.NET.Contract;
+using ConsoleProject.NET.Repositories.Interfaces;
 
 namespace ConsoleProject.NET.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class NoteController(INoteRepository noteRepo) : ControllerBase
+public class NoteController : ControllerBase
 {
-    [HttpGet("user/{userId}")]
-    public ActionResult<IReadOnlyList<NoteVM>> GetByUser(int userId)
-    => Ok(noteRepo.GetByUserId(userId));
+    private readonly INoteRepository _noteRepository;
     
-    [HttpPost]
-    public ActionResult<int> Create([FromBody] NoteAddDto dto)
+    public NoteController(INoteRepository noteRepository)
     {
-        var id = noteRepo.Add(dto);
+        _noteRepository = noteRepository;
+    }
+
+    [HttpGet("user/{userId}")]
+    public async Task<ActionResult<IReadOnlyList<NoteVM>>> GetByUser(int userId)
+    {
+        var notes = await _noteRepository.GetByUserIdAsync(userId);
+        return Ok(notes);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<int>> Create([FromBody] NoteAddDto dto)
+    {
+        var id = await _noteRepository.AddAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id }, id);
     }
+
     [HttpGet("{id}")]
-    public ActionResult<NoteVM> GetById(int id)
-    => noteRepo.GetById(id) is { } note ? Ok(note) : NotFound();
-    [HttpPut("{id}")]
-    public IActionResult Update(int id, [FromBody] NoteUpdateDto dto)
+    public async Task<ActionResult<NoteVM>> GetById(int id)
     {
-        noteRepo.Update(id, dto);
+        var note = await _noteRepository.GetByIdAsync(id);
+        return note != null ? Ok(note) : NotFound();
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] NoteUpdateDto dto)
+    {
+        await _noteRepository.UpdateAsync(id, dto);
         return NoContent();
     }
+
     [HttpDelete("{id}")]
-    public ActionResult Delete(int id)
+    public async Task<ActionResult> Delete(int id)
     {
-        noteRepo.Delete(id);
+        await _noteRepository.DeleteAsync(id);
+        return NoContent();
+    }
+
+    [HttpPatch("{id}/toggle")]
+    public async Task<IActionResult> ToggleCompletion(int id, [FromBody] bool isCompleted)
+    {
+        await _noteRepository.ToggleCompletionAsync(id, isCompleted);
         return NoContent();
     }
 }

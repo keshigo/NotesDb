@@ -1,26 +1,42 @@
-using ConsoleProject.NET.Exceptions;
-using ConsoleProject.NET.Models;
 using AutoMapper;
 using ConsoleProject.NET.Contract;
-
+using ConsoleProject.NET.Data;
+using ConsoleProject.NET.Exceptions;
+using ConsoleProject.NET.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace ConsoleProject.NET.Repositories;
 
-public class UserRepository(IMapper mapper) : IUserRepository
+public class UserRepository : IUserRepository
 {
-    private readonly List<User> _users = new();
-    private int _idCounter;
-    private readonly IMapper _mapper = mapper;
-    public UserVm? GetById(int id) =>
-        _mapper.Map<UserVm>(_users.FirstOrDefault(x => x.Id == id));
-    public IReadOnlyList<UserVm> GetUsers() => _mapper.Map<IReadOnlyList<UserVm>>(_users);
-    public int Add(UserAddDto dto)
+    private readonly AppDbContext _context;
+    private readonly IMapper _mapper;
+
+    public UserRepository(AppDbContext context, IMapper mapper)
     {
-        if (string.IsNullOrWhiteSpace(dto.Name))
-            throw new NameIsRequired();
+        _context = context;
+        _mapper = mapper;
+    }
+
+    public async Task<UserVm> GetById(int id)
+    {
+        var user = await _context.Users.FindAsync(id);
+        return user == null 
+            ? throw new UserNotFoundException(id) 
+            : _mapper.Map<UserVm>(user);
+    }
+
+    public async Task<IReadOnlyList<UserVm>> GetUsers()
+    {
+        var users = await _context.Users.ToListAsync();
+        return _mapper.Map<IReadOnlyList<UserVm>>(users);
+    }
+
+    public async Task<int> Add(UserAddDto dto)
+    {
         var user = _mapper.Map<User>(dto);
-        user.Id = ++_idCounter;
-        _users.Add(user);
+        await _context.Users.AddAsync(user);
+        await _context.SaveChangesAsync();
         return user.Id;
     }
 }

@@ -1,44 +1,45 @@
-﻿using System.Net;
-using System.Net.Mime;
+﻿using ConsoleProject.NET.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Http.HttpResults;
-using ConsoleProject.NET.Exceptions;
+using System.Net;
+
 namespace ConsoleProject.NET.Services;
 
 public class ExceptionHandler : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(
-    HttpContext httpContext,
-    Exception exception,
-    CancellationToken cancellationToken)
+        HttpContext context,
+        Exception exception,
+        CancellationToken cancellationToken)
     {
-        httpContext.Response.ContentType = MediaTypeNames.Application.Json;
+        context.Response.ContentType = "application/json";
+        
         switch (exception)
         {
-            case UserNotFoundException unfe:
-                httpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                await httpContext.Response.WriteAsJsonAsync(new { Error = unfe.Message });
-                return true;
-
-            case NoteNotFoundException nnfe:
-                httpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                await httpContext.Response.WriteAsJsonAsync(new { Error = nnfe.Message });
-                return true;
-
-            case TitleIsRequired tir:
-                httpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                await httpContext.Response.WriteAsJsonAsync(new { Error = tir.Message });
-                return true;
-
-            case NameIsRequired nir:
-                httpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                await httpContext.Response.WriteAsJsonAsync(new { Error = nir.Message });
-                return true;
-
+            case NoteNotFoundException ex:
+                await HandleException(context, ex, HttpStatusCode.NotFound);
+                break;
+                
+            case UserNotFoundException ex:
+                await HandleException(context, ex, HttpStatusCode.NotFound);
+                break;
+                
             default:
-                httpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                await httpContext.Response.WriteAsJsonAsync(new { Error = "InternalServerError" });
-                return false;
+                await HandleException(context, exception, HttpStatusCode.InternalServerError);
+                break;
         }
+        
+        return true;
+    }
+
+    private static async Task HandleException(
+        HttpContext context, 
+        Exception exception, 
+        HttpStatusCode code)
+    {
+        context.Response.StatusCode = (int)code;
+        await context.Response.WriteAsJsonAsync(new {
+            Error = exception.Message,
+            StatusCode = code
+        });
     }
 }

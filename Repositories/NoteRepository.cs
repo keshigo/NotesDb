@@ -1,43 +1,90 @@
 using AutoMapper;
 using ConsoleProject.NET.Contract;
+using ConsoleProject.NET.Data;
 using ConsoleProject.NET.Exceptions;
 using ConsoleProject.NET.Models;
+using ConsoleProject.NET.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace ConsoleProject.NET.Repositories;
 
-public class NoteRepository: INoteRepository
+public class NoteRepository : INoteRepository
 {
-    private readonly AppDbContext
-    private readonly List<Note> _notes = new();
-    private int _idCounter;
-    private readonly IMapper _mapper = mapper;
-    public NoteVM? GetById(int id)
-    => _mapper.Map<NoteVM>(_notes.FirstOrDefault(z => z.Id == id));
-    public IReadOnlyList<NoteVM> GetByUserId(int userId)
+    private readonly AppDbContext _context;
+    private readonly IMapper _mapper;
+
+    public NoteRepository(AppDbContext context, IMapper mapper)
     {
-        if (userRepository.GetById(userId) == null)
-            throw new UserNotFoundException(userId);
-        return _mapper.Map<IReadOnlyList<NoteVM>>(_notes.Where(x => x.UserId == userId));
+        _context = context;
+        _mapper = mapper;
     }
-    public int Add(NoteAddDto dto)
+
+    public async Task<NoteVM> GetByIdAsync(int id)
     {
-        if (string.IsNullOrWhiteSpace(dto.Title))
-            throw new TitleIsRequired();
+        var note = await _context.Notes
+            .Include(n => n.User)
+            .FirstOrDefaultAsync(n => n.Id == id);
+
+        return note == null 
+            ? throw new NoteNotFoundException(id) 
+            : _mapper.Map<NoteVM>(note);
+    }
+
+    public async Task<IReadOnlyList<NoteVM>> GetByUserIdAsync(int userId)
+    {
+        var notes = await _context.Notes
+            .Where(n => n.UserId == userId)
+            .Include(n => n.User)
+            .ToListAsync();
+
+        return _mapper.Map<IReadOnlyList<NoteVM>>(notes);
+    }
+
+    public async Task<int> AddAsync(NoteAddDto dto)
+    {
         var note = _mapper.Map<Note>(dto);
-        note.Id = _idCounter++;
-        _notes.Add(note);
+        note.NoteCreationTime = DateTime.UtcNow;
+        
+        await _context.Notes.AddAsync(note);
+        await _context.SaveChangesAsync();
+        
         return note.Id;
     }
-    public void Update(int id, NoteUpdateDto dto)
+
+    public async Task UpdateAsync(int id, NoteUpdateDto dto)
     {
-        var note = _notes.FirstOrDefault(o => o.Id == id)
-        ??    throw new NoteNotFoundException(id);
+        var note = await _context.Notes.FindAsync(id);
+        if (note == null) throw new NoteNotFoundException(id);
+
         _mapper.Map(dto, note);
+        await _context.SaveChangesAsync();
     }
-    public void Delete(int id)
+
+    public async Task DeleteAsync(int id)
     {
-        var note = _notes.FirstOrDefault(v => v.Id == id)
-        ??    throw new NoteNotFoundException(id);
-        _notes.Remove(note);
+        var note = await _context.Notes.FindAsync(id);
+        if (note == null) throw new NoteNotFoundException(id);
+
+        _context.Notes.Remove(note);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task ToggleCompletionAsync(int id, bool isCompleted)
+    {
+        var note = await _context.Notes.FindAsync(id);
+        if (note == null) throw new NoteNotFoundException(id);
+
+        note.IsCompleted = isCompleted;
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<IReadOnlyList<NoteVM>> FilterByPriorityAsync(Priority priority)
+    {
+        var notes = await _context.Notes
+            .Where(n => n.Priority == priority)
+            .Include(n => n.User)
+            .ToListAsync();
+
+        return _mapper.Map<IReadOnlyList<NoteVM>>(notes);
     }
 }

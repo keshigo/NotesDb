@@ -1,41 +1,40 @@
-using Microsoft.AspNetCore.Mvc;
-using ConsoleProject.NET.Exceptions;
-using ConsoleProject.NET.Models;
-using ConsoleProject.NET.Repositories;
 using ConsoleProject.NET.Contract;
+
+using ConsoleProject.NET.Repositories;
+
+using Microsoft.AspNetCore.Mvc;
 
 namespace ConsoleProject.NET.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-
-public class UserController(IUserRepository repository) : ControllerBase
+public class UserController : ControllerBase
 {
+    private readonly IUserRepository _userRepository;
+
+    public UserController(IUserRepository userRepository)
+    {
+        _userRepository = userRepository;
+    }
+
     [HttpGet]
-    public ActionResult<IReadOnlyList<UserVm>> GetUsers()
-      => Ok(repository.GetUsers());
+    public async Task<ActionResult<IReadOnlyList<UserVm>>> GetUsers()
+    {
+        var users = await _userRepository.GetUsers();
+        return Ok(users);
+    }
 
     [HttpPost]
-    public ActionResult<int> Create([FromBody] UserAddDto dto)
+    public async Task<ActionResult<int>> Create([FromBody] UserAddDto dto)
     {
-        try
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            var id = repository.Add(dto);
-            return CreatedAtAction(nameof(GetById), new { id }, id);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { Error = ex.Message });
-        }
+        var id = await _userRepository.Add(dto);
+        return CreatedAtAction(nameof(GetById), new { id }, id);
     }
+
     [HttpGet("{id}")]
-    public ActionResult<UserVm> GetById(int id) 
+    public async Task<ActionResult<UserVm>> GetById(int id)
     {
-        var user = repository.GetById(id);
+        var user = await _userRepository.GetById(id);
         return user != null ? Ok(user) : NotFound();
     }
 }
