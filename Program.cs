@@ -1,3 +1,4 @@
+using ConsoleProject.NET.Configurations.Database;
 using ConsoleProject.NET.Data;
 using ConsoleProject.NET.Repositories;
 using ConsoleProject.NET.Repositories.Interfaces;
@@ -6,24 +7,30 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
-// Database
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+builder.Services
+    .AddOptions<ApplicationDbContextSettings>()
+    .Bind(builder.Configuration.GetRequiredSection(nameof(ApplicationDbContextSettings)))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
-// Register services
+
+builder.Services.AddDbContext<AppDbContext>();
+
+
 builder.Services.AddScoped<INoteRepository, NoteRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddAutoMapper(typeof(Program));
 builder.Services.AddExceptionHandler<ExceptionHandler>();
 
+
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
 
-// Configure middleware
+// Middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -32,10 +39,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
-app.MapControllers();
 app.UseExceptionHandler("/error");
 
-// Apply migrations
+app.MapControllers();
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

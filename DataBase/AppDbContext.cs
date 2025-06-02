@@ -1,17 +1,32 @@
+using ConsoleProject.NET.Configurations.Database;
 using ConsoleProject.NET.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace ConsoleProject.NET.Data;
 
 public class AppDbContext : DbContext
 {
-    public DbSet<User> Users { get; set; }
-    public DbSet<Note> Notes { get; set; }
+    private readonly ApplicationDbContextSettings _dbContextSettings;
 
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Note> Notes => Set<Note>();
+
+    public AppDbContext(DbContextOptions<AppDbContext> options, IOptions<ApplicationDbContextSettings> dbContextSettings)
+        : base(options)
+    {
+        _dbContextSettings = dbContextSettings.Value;
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+        optionsBuilder.UseNpgsql(_dbContextSettings.ConnectionString);
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(Program).Assembly);
     }
 }

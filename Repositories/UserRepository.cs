@@ -21,8 +21,8 @@ public class UserRepository : IUserRepository
     public async Task<UserVm> GetById(int id)
     {
         var user = await _context.Users.FindAsync(id);
-        return user == null 
-            ? throw new UserNotFoundException(id) 
+        return user == null
+            ? throw new UserNotFoundException(id)
             : _mapper.Map<UserVm>(user);
     }
 
@@ -39,4 +39,10 @@ public class UserRepository : IUserRepository
         await _context.SaveChangesAsync();
         return user.Id;
     }
+    public async Task<User?> GetUserWithNotesAsync(int userId)
+{
+    return await _context.Users
+        .Include(u => u.Notes)
+        .FirstOrDefaultAsync(u => u.Id == userId);
+}
 }

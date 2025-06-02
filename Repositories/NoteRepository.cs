@@ -25,8 +25,8 @@ public class NoteRepository : INoteRepository
             .Include(n => n.User)
             .FirstOrDefaultAsync(n => n.Id == id);
 
-        return note == null 
-            ? throw new NoteNotFoundException(id) 
+        return note == null
+            ? throw new NoteNotFoundException(id)
             : _mapper.Map<NoteVM>(note);
     }
 
@@ -44,10 +44,10 @@ public class NoteRepository : INoteRepository
     {
         var note = _mapper.Map<Note>(dto);
         note.NoteCreationTime = DateTime.UtcNow;
-        
+
         await _context.Notes.AddAsync(note);
         await _context.SaveChangesAsync();
-        
+
         return note.Id;
     }
 
@@ -86,5 +86,11 @@ public class NoteRepository : INoteRepository
             .ToListAsync();
 
         return _mapper.Map<IReadOnlyList<NoteVM>>(notes);
+    }
+    public async Task<Note?> GetNoteWithUserAsync(int noteId)
+    {
+        return await _context.Notes
+            .Include(n => n.User)
+            .FirstOrDefaultAsync(n => n.Id == noteId);
     }
 }
