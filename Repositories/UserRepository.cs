@@ -40,9 +40,9 @@ public class UserRepository : IUserRepository
         return user.Id;
     }
     public async Task<User?> GetUserWithNotesAsync(int userId)
-{
-    return await _context.Users
-        .Include(u => u.Notes)
-        .FirstOrDefaultAsync(u => u.Id == userId);
-}
+    {
+        return await _context.Users
+            .Include(u => u.Notes)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+    }
 }
