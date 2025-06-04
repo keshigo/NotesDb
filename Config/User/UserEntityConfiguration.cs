@@ -9,7 +9,7 @@ public class UserEntityConfiguration : IEntityTypeConfiguration<User>
     {
         builder.HasKey(user => user.Id);
 
-        builder.Property(user => user.Name).HasMaxLength(128);
+        builder.Property(user => user.UserName).HasMaxLength(128);
         builder.Property(user => user.Password).HasMaxLength(256);
 
         builder.HasMany(user => user.Notes)

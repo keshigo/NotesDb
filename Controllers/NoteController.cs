@@ -6,9 +6,11 @@ using ConsoleProject.NET.Models;
 using ConsoleProject.NET.Repositories;
 using ConsoleProject.NET.Contract;
 using ConsoleProject.NET.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ConsoleProject.NET.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class NoteController : ControllerBase

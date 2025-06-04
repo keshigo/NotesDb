@@ -1,5 +1,5 @@
 using ConsoleProject.NET.Contract;
-
+using ConsoleProject.NET.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -13,4 +13,5 @@ public interface INoteRepository
     Task UpdateAsync(int id, NoteUpdateDto dto);
     Task DeleteAsync(int id);
     Task ToggleCompletionAsync(int id, bool isCompleted);
+    Task<Note?> GetNoteWithUserAsync(int noteId);
 }

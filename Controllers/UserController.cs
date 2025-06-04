@@ -1,7 +1,8 @@
 using ConsoleProject.NET.Contract;
 
 using ConsoleProject.NET.Repositories;
-
+using ConsoleProject.NET.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ConsoleProject.NET.Controllers;
@@ -11,10 +12,30 @@ namespace ConsoleProject.NET.Controllers;
 public class UserController : ControllerBase
 {
     private readonly IUserRepository _userRepository;
+    private readonly IAuthService _authService;
 
-    public UserController(IUserRepository userRepository)
+    public UserController(IAuthService authService)
     {
-        _userRepository = userRepository;
+        _authService = authService;
+    }
+
+    [AllowAnonymous]
+    [HttpPost("signup")]
+    public ActionResult<JwtTokenVm> SignUp([FromBody] SignUpDto dto)
+    {
+        var token = _authService.SignUp(dto);
+        return Ok(token);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("login")]
+    public ActionResult<JwtTokenVm> LogIn([FromBody] LogInDto dto)
+    {
+        var token = _authService.LogIn(dto);
+        if (token is null)
+            return NotFound();
+
+        return Ok(token);
     }
 
     [HttpGet]
